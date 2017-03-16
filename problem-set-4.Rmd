@@ -1,6 +1,6 @@
 ---
 title: "Problem Set 4"
-author: "Your Name Here"
+author: "An Doan"
 date: "3/9/2017"
 output: html_document
 ---
@@ -49,12 +49,22 @@ project_io
 
 The `projects` and `project_io` tables have the `r intersect(names(projects), names(project_io))` column in common. Use this column to perform a `left_join` and identify the most expensive project for each institute. Project institutes are in the `projects` table, whereas total project costs are available in the `project_io` table. Note you will have to use the `arrange` and `slice` verbs from `dplyr`.
 
-```{r problem_1, eval=FALSE}
-... %>%
-  left_join(...) %>%
-  arrange(...) %>%
-  slice(...)
+```{r problem_1}
+projects %>%
+  select(project.num, institute) %>%
+  left_join(project_io) %>%
+  select(project.num, institute, total.cost) %>%
+  group_by(institute) %>% 
+  arrange(desc(total.cost)) %>%
+  slice(1:1) %>%
+  arrange(desc(total.cost)) %>%
+  ungroup() %>%
+  slice(1:1) -> expensive_project
+expensive_project
+
 ```
+
+
 
 ## Problem 2
 
@@ -62,31 +72,53 @@ Create a plot that describes the change in output (number of publications) for t
 
 ```{r p2_tbl}
 projects %>%
-  head() %>%
+  semi_join(expensive_project) %>%
   left_join(publinks) %>%
   left_join(publications) %>%
-  select(project.num, fiscal.year, fy.cost, pmid) %>%
-  na.omit()
+  select(project.num, pub.year, fy.cost, pmid) %>%
+  na.omit() %>%
+  group_by(pub.year) %>% 
+  summarize(total.pubs = n()) -> total_pubs
+
+ggplot(total_pubs, aes(pub.year, total.pubs)) +
+  geom_point()
+
 ```
 
-```{r problem_2}
-```
 
 ## Problem 3
 
 Use the `projects` and `clinical_studies` table to calculate how many clinical studies have been started by projects from each institute.
 
 ```{r problem_3}
+projects %>%
+  left_join(clinical_studies) %>%
+  na.omit() %>%
+  group_by(institute) %>%
+  summarize(total.clinical.studies = n()) -> total_studies
+  total_studies
+  
+  
+
 ```
 
 ## Problem 4
 
 Calculate correlations between `total.cost` and `n.pubs` for each institute. You will need to `join` the `projects` and `project_io` tables to link `institute` with `total.cost` and `n.pubs`. You will then need to use `group_by` and `do` from `dplyr` and `tidy` from `broom` to calculate correlations.
 
-```{r problem_2, eval=FALSE}
-tab %>%
-  group_by(...) %>%
-  do(tidy(cor(..., ...)))
+
+```{r problem_4}
+projects %>%
+  left_join(project_io) %>%
+  select(institute, total.cost, n.pubs) %>% 
+  na.omit() %>%
+  group_by(institute) %>%
+  do(tidy(cor(.$total.cost, .$n.pubs))) -> correlations
+  correlations
+  
+  
+  
+
 ```
 
 ## Problem 5 (extra credit)
